@@ -7,103 +7,121 @@ const countriesContainer = document.querySelector(".countries");
 // https://restcountries.com/v3.1/name/morocco
 
 //console.log(request.responseText);
-/*
-const getCountryData = function (countryName) {
-  // Ond school to make AJAX Call
-  const url = `https://restcountries.com/v3.1/name/${countryName}`;
-  const request = new XMLHttpRequest();
-  request.open("GET", url);
-  request.send();
-  request.addEventListener("load", function () {
-    console.log(this.responseText);
-    const [data] = JSON.parse(this.responseText);
-    console.log(data);
-    const languageKey = Object.keys(data.languages)[0];
-    const currencyKey = Object.keys(data.currencies)[0];
-    const html = `
-          <article class="country">
-                  <img class="country__img" src="${data.flags.png}" />
-                  <div class="country__data">
-                    <h3 class="country__name">${data.name.common}</h3>
-                    <h4 class="country__region">${data.region}</h4>
-                    <p class="country__row"><span>👫</span>${data.population}</p>
-                    <p class="country__row"><span>🗣️</span>${data.languages[languageKey]}</p>
-                    <p class="country__row"><span>💰</span>${data.currencies[currencyKey].name}</p>
-                  </div>
-                </article>
-        `;
-    countriesContainer.insertAdjacentHTML("beforeend", html);
-    countriesContainer.style.opacity = 1;
-  });
+
+const renderError = function (msg) {
+  countriesContainer.insertAdjacentText("beforeend", msg);
+  //countriesContainer.style.opacity = 1;
 };
-*/
-// getCountryData("morocco");
-// getCountryData("usa");
-// getCountryData("algeria");
-
-// Multiple ajax call (second ajax call depends on first ajax call)
-
-const renderCountry = function (data, className = "") {
-  const languageKey = Object.keys(data.languages)[0];
-  const currencyKey = Object.keys(data.currencies)[0];
+const renderCountry = function (countryData, className = "") {
+  const language = Object.values(countryData.languages || {})[0] || "N/A";
+  const currency = Object.values(countryData.currencies || {})[0]?.name;
   const html = `
             <article class="country ${className}">
-                    <img class="country__img" src="${data.flags.png}" alt="Flag of ${data.name.common}"/>
+                    <img class="country__img" src="${countryData.flags.png}" alt="Flag of ${countryData.name.common}"/>
                     <div class="country__data">
-                      <h3 class="country__name">${data.name.common}</h3>
-                      <h4 class="country__region">${data.region}</h4>
-                      <p class="country__row"><span>👫</span>${data.population}</p>
-                      <p class="country__row"><span>🗣️</span>${data.languages[languageKey]}</p>
-                      <p class="country__row"><span>💰</span>${data.currencies[currencyKey].name}</p>
+                      <h3 class="country__name">${countryData.name.common}</h3>
+                      <h4 class="country__region">${countryData.region}</h4>
+                      <p class="country__row"><span>👫</span>${countryData.population}</p>
+                      <p class="country__row"><span>🗣️</span>${language}</p>
+                      <p class="country__row"><span>💰</span>${currency}</p>
                     </div>
                   </article>
           `;
   countriesContainer.insertAdjacentHTML("beforeend", html);
-  countriesContainer.style.opacity = 1;
+  //   countriesContainer.style.opacity = 1;
 };
 
-// Callback Hell
-const getCountryAndNeighbour = function (countryName) {
-  //  AJAX Call country 1
-  const url = `https://restcountries.com/v3.1/name/${countryName}`;
-  const request = new XMLHttpRequest();
-  request.open("GET", url);
-  request.send();
-  request.addEventListener("load", function () {
-    const [data] = JSON.parse(this.responseText);
-    console.log(data);
-    // Render country 1
-    renderCountry(data);
+// Using promises and fetch API
 
-    // Get neighbour country (2)
+// Promise
 
-    const [neighbour] = data?.borders;
-    //console.log(neighbour);
+// const getCountryData = function (countryName) {
+//   fetch(`https://restcountries.com/v3.1/name/${countryName}`)
+//     // To consume promises
+//     .then((response) => {
+//       console.log(response);
+//       return response.json();
+//     })
+//     .then((data) => {
+//       console.log(data);
+//       renderCountry(data[0]);
+//     });
+// };
 
-    const url2 = `https://restcountries.com/v3.1/alpha/${neighbour}`;
-    const request2 = new XMLHttpRequest();
-    request2.open("GET", url2);
-    request2.send();
-    request2.addEventListener("load", function () {
-      const [data2] = JSON.parse(this.responseText);
-      renderCountry(data2, "neighbour");
-    });
+// const getCountryAndNeighbour = function (countryName) {
+//   fetch(`https://restcountries.com/v3.1/name/${countryName}`)
+//     .then((response) => {
+//       // Throwing errors manually
+//       if (!response.ok)
+//         throw new Error(`Country Not found (${response.status})`);
+//       return response.json();
+//     })
+//     .then((data) => {
+//       renderCountry(data[0]);
+//       const [neighbour] = data[0]?.borders;
+//       //const neighbour = "kkjkk";
+//       console.log(neighbour);
+//       return fetch(`https://restcountries.com/v3.1/alpha/${neighbour}`);
+//     })
+//     .then((response) => {
+//       if (!response.ok)
+//         throw new Error(`Country Not found (${response.status})`);
+//       return response.json();
+//     })
+//     .then((data) => {
+//       console.log(data);
+//       renderCountry(data[0], "neighbour");
+//     })
+//     .catch((err) => {
+//       // handling rejected promises
+//       console.error(`${err} 💥💥💥`);
+//       renderError(`Something went wrong 💥💥💥 ${err.message}. Try Again!`);
+//     })
+//     .finally(() => {
+//       countriesContainer.style.opacity = 1;
+//     });
+// };
+
+// Refactoring the code :
+
+const getJSON = (url, errorMsg = "Something went wrong") => {
+  return fetch(url).then((response) => {
+    // Throwing errors manually
+    if (!response.ok) throw new Error(`${errorMsg} ${response.status})`);
+    return response.json();
   });
 };
 
-getCountryAndNeighbour("usa");
+const getCountryAndNeighbour = function (countryName) {
+  getJSON(
+    `https://restcountries.com/v3.1/name/${countryName}`,
+    "Country Not Found"
+  )
+    .then((data) => {
+      renderCountry(data[0]);
+      const [neighbour] = data[0]?.borders;
+      //console.log(neighbour);
+      //const neighbour = "kkjkk";
+      if (neighbour === undefined) throw new Error("No neighbour found!");
+      return getJSON(
+        `https://restcountries.com/v3.1/alpha/${neighbour}`,
+        "Country Not Found"
+      );
+    })
+    .then((data) => {
+      renderCountry(data[0], "neighbour");
+    })
+    .catch((err) => {
+      console.error(`${err} 💥💥💥`);
+      renderError(`Something went wrong 💥💥💥 ${err.message}. Try Again!`);
+    })
+    .finally(() => {
+      countriesContainer.style.opacity = 1;
+    });
+};
 
-// Callback Hell example (code hard to understand and to maintain ===> Bad code (buggs))
+//getCountryData("morocco");
 
-setTimeout(() => {
-  console.log("1 second passed");
-  setTimeout(() => {
-    console.log("2 seconds passed");
-    setTimeout(() => {
-      console.log("3 seconds passed");
-      setTimeout(() => {
-        console.log("4 seconds passed");
-      }, 4000);
-    }, 3000);
-  }, 2000);
-}, 1000);
+getCountryAndNeighbour("australia");
+
+btn.addEventListener("click", () => getCountryAndNeighbour("morocco"));
